@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:win32_registry/win32_registry.dart';
 
 // Debe coincidir con _oauthRedirect en pages/login_page.dart.
-const String _scheme = 'com.example.pruebaapps';
+const String _scheme = 'com.kirolive.app';
 
 /// Registra el esquema de URL en el registro de Windows para que el navegador
 /// pueda devolver el control a la app tras el login con Google.

@@ -7,7 +7,7 @@ import '../main.dart';
 // Esquema de URL al que vuelve el navegador tras el login con Google en
 // móvil y escritorio. Debe coincidir con lo configurado en Android/iOS y
 // en la lista de "Redirect URLs" de Supabase.
-const String _oauthRedirect = 'com.example.pruebaapps://login-callback/';
+const String _oauthRedirect = 'com.kirolive.app://login-callback/';
 
 /// Pantalla de inicio de sesión y registro con email + contraseña.
 class LoginPage extends StatefulWidget {

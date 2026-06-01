@@ -1,4 +1,4 @@
-package com.example.pruebaapps
+package com.kirolive.app
 
 import io.flutter.embedding.android.FlutterActivity
 

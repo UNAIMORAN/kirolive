@@ -10,5 +10,5 @@
 //
 // Importante: usa SIEMPRE la clave pública (sb_publishable_...), nunca la
 // secreta (sb_secret_...), en una app cliente.
-const String supabaseUrl = 'https://TU-PROYECTO.supabase.co';
-const String supabaseAnonKey = 'TU-CLAVE-sb_publishable_...';
+const String supabaseUrl = 'https://mlaozknquvwbbbavunwy.supabase.co';
+const String supabaseAnonKey = 'sb_publishable_bvRokWqft6Z152kmiaLlyQ_zsLWBdFm';
