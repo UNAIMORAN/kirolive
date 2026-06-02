@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'pages/home_page.dart';
 import 'pages/login_page.dart';
-import 'pages/todos_page.dart';
 import 'scheme_registrar.dart';
 import 'supabase_config.dart';
+import 'theme.dart';
+import 'widgets/climbing_loader.dart';
 
 Future<void> main() async {
   // Necesario antes de usar plugins (como Supabase) en main().
@@ -32,12 +34,11 @@ class TodoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mis Tareas',
+      title: 'Kirolive',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
       home: const AuthGate(),
     );
   }
@@ -55,16 +56,16 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: supabase.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // Mientras llega el primer evento, mostramos un spinner.
+        // Mientras llega el primer evento, mostramos el cargador animado.
         if (!snapshot.hasData) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: ClimbingLoader()),
           );
         }
 
         final session = snapshot.data!.session;
         if (session != null) {
-          return const TodosPage();
+          return const HomePage();
         }
         return const LoginPage();
       },

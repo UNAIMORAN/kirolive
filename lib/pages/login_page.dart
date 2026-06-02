@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
+import '../theme.dart';
 
 // Esquema de URL al que vuelve el navegador tras el login con Google en
 // móvil y escritorio. Debe coincidir con lo configurado en Android/iOS y
@@ -100,74 +101,89 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Tareas')),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
+            constraints: const BoxConstraints(maxWidth: 380),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.checklist_rounded, size: 64),
-                const SizedBox(height: 16),
-                Text(
-                  'Inicia sesión o regístrate',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge,
+                // Marca: una señal de "inteligencia", serena.
+                Center(
+                  child: Container(
+                    height: 60,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Icon(Icons.insights_rounded,
+                        color: AppColors.accent, size: 30),
+                  ),
                 ),
                 const SizedBox(height: 24),
+                Text(
+                  'Kirolive',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Tu entrenador inteligente',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                ),
+                const SizedBox(height: 36),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Email'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _loading ? null : _signIn,
                   child: _loading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Text('Entrar'),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 OutlinedButton(
                   onPressed: _loading ? null : _signUp,
-                  child: const Text('Registrarse'),
+                  child: const Text('Crear cuenta'),
                 ),
-                const SizedBox(height: 16),
-                const Row(
+                const SizedBox(height: 24),
+                Row(
                   children: [
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('o'),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('o', style: TextStyle(color: muted)),
                     ),
-                    Expanded(child: Divider()),
+                    const Expanded(child: Divider()),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: _loading ? null : _signInWithGoogle,
-                  icon: const Icon(Icons.login),
+                  icon: const Icon(Icons.g_mobiledata, size: 26),
                   label: const Text('Continuar con Google'),
                 ),
               ],

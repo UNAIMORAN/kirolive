@@ -41,6 +41,9 @@ dependencies:
   # Solo se usa en Windows: registra el esquema de URL para el login con Google.
   win32_registry: ^1.1.0
 
+  # Abre el navegador para el login OAuth de Strava.
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

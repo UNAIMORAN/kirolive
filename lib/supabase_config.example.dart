@@ -10,5 +10,12 @@
 //
 // Importante: usa SIEMPRE la clave pública (sb_publishable_...), nunca la
 // secreta (sb_secret_...), en una app cliente.
-const String supabaseUrl = 'https://mlaozknquvwbbbavunwy.supabase.co';
-const String supabaseAnonKey = 'sb_publishable_bvRokWqft6Z152kmiaLlyQ_zsLWBdFm';
+const String supabaseUrl = 'https://TU-PROYECTO.supabase.co';
+const String supabaseAnonKey = 'TU-CLAVE-sb_publishable_...';
+
+// --- Strava (estos valores NO son secretos, pueden ir en la app) ---
+// Client ID de tu aplicación en https://www.strava.com/settings/api
+const String stravaClientId = 'TU-CLIENT-ID';
+// URL de la Edge Function que recibe el callback de Strava.
+const String stravaCallbackUrl =
+    'https://TU-PROYECTO.supabase.co/functions/v1/strava-callback';
