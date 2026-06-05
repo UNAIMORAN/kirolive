@@ -100,14 +100,14 @@ class _ClimberPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // Banderín en la cima (la meta), en color de acento.
-    final flagPaint = Paint()..color = figure;
+    // Banderín en la cima (la meta), en lima — el "pop" de energía de la marca.
+    final flagPaint = Paint()..color = AppColors.energy;
     final poleTop = Offset(apex.dx, apex.dy - h * 0.14);
     canvas.drawLine(
       apex,
       poleTop,
       Paint()
-        ..color = figure
+        ..color = AppColors.energy
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round,
     );

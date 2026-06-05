@@ -8,7 +8,10 @@
 //      paginando hasta el final. Solo el resumen (rápido y barato).
 //    • INCREMENTAL (siguientes veces): trae solo lo NUEVO (parámetro `after`)
 //      y, como son pocas, pide el DETALLE completo de cada una (calorías,
-//      descripción, splits, esfuerzo, cadencia, vueltas...) y lo guarda en raw.
+//      descripción, splits, esfuerzo, cadencia, vueltas...) más los EXTRAS
+//      (altimetría vía streams, zonas de FC/potencia y la meteo del momento
+//      vía Open-Meteo) y los guarda en raw como kirolive_alt / kirolive_zones
+//      / kirolive_weather.
 //
 //  Detalle limitado a ENRICH_LIMIT por ejecución para no agotar el límite de
 //  Strava (200 req/15 min, 2000/día).
@@ -39,6 +42,66 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...cors, "content-type": "application/json" },
   });
+}
+
+// Reduce los streams de altitud a ~200 puntos [distancia_m, altitud_m] para el
+// perfil de altimetría, manteniendo `raw` pequeño. Devuelve null si no hay GPS.
+function downsampleAltitude(streams: any): { d: number[]; a: number[] } | null {
+  const alt = streams?.altitude?.data;
+  const dist = streams?.distance?.data;
+  if (!Array.isArray(alt) || alt.length < 2) return null;
+  const n = alt.length;
+  const step = Math.max(1, Math.floor(n / 200));
+  const d: number[] = [];
+  const a: number[] = [];
+  for (let i = 0; i < n; i += step) {
+    a.push(Math.round(alt[i]));
+    d.push(Array.isArray(dist) ? Math.round(dist[i]) : i);
+  }
+  // Asegura incluir el último punto.
+  if ((n - 1) % step !== 0) {
+    a.push(Math.round(alt[n - 1]));
+    d.push(Array.isArray(dist) ? Math.round(dist[n - 1]) : n - 1);
+  }
+  return { d, a };
+}
+
+// Tiempo que hacía en el lugar/momento de la actividad (Open-Meteo, histórico
+// de alta resolución; gratis y sin clave). Devuelve null si no hay GPS/fecha o
+// si no hay datos para esa hora. Elige la hora UTC de inicio de la actividad.
+async function fetchWeather(a: Record<string, any>): Promise<Record<string, any> | null> {
+  const ll = a.start_latlng;
+  if (!Array.isArray(ll) || ll.length < 2 || !a.start_date) return null;
+  const start = new Date(a.start_date);
+  if (isNaN(start.getTime())) return null;
+
+  const day = start.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const hourKey = start.toISOString().slice(0, 13); // YYYY-MM-DDTHH (UTC)
+  const url = "https://historical-forecast-api.open-meteo.com/v1/forecast" +
+    `?latitude=${ll[0]}&longitude=${ll[1]}` +
+    `&start_date=${day}&end_date=${day}&timezone=UTC` +
+    "&hourly=temperature_2m,relative_humidity_2m,precipitation," +
+    "weather_code,wind_speed_10m,wind_direction_10m";
+
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  const w = await r.json();
+  const times: string[] = w?.hourly?.time ?? [];
+  if (!Array.isArray(times) || times.length === 0) return null;
+
+  let idx = times.findIndex((t) => t.slice(0, 13) === hourKey);
+  if (idx < 0) idx = 0; // si no cuadra la hora exacta, usa la primera
+  const h = w.hourly;
+  const pick = (arr: any) => (Array.isArray(arr) && arr[idx] != null ? arr[idx] : null);
+
+  return {
+    temp: pick(h.temperature_2m),
+    humidity: pick(h.relative_humidity_2m),
+    precip: pick(h.precipitation),
+    wind: pick(h.wind_speed_10m),
+    wind_dir: pick(h.wind_direction_10m),
+    code: pick(h.weather_code),
+  };
 }
 
 // Campos de resumen (los que vienen en la lista de actividades).
@@ -73,7 +136,8 @@ function detailRow(userId: string, a: Record<string, any>) {
     suffer_score: a.suffer_score ?? null,
     average_cadence: a.average_cadence ?? null,
     detailed: true,
-    raw: a, // JSON de detalle íntegro
+    extras: true, // ya intentamos traer altimetría + zonas (haya datos o no)
+    raw: a, // JSON de detalle íntegro (+ kirolive_alt / kirolive_zones)
   };
 }
 
@@ -181,7 +245,7 @@ Deno.serve(async (req) => {
       .from("activities")
       .select("id")
       .eq("user_id", userId)
-      .eq("detailed", false)
+      .or("detailed.eq.false,extras.eq.false") // falta detalle O faltan los extras
       .order("start_date", { ascending: false })
       .limit(ENRICH_LIMIT);
     toEnrichIds = (pending ?? []).map((r: any) => r.id);
@@ -197,6 +261,33 @@ Deno.serve(async (req) => {
     if (res.status === 429) break; // límite de Strava: paramos por hoy
     if (!res.ok) continue;
     const detail = await res.json();
+
+    // Extras (no bloquean si fallan): perfil de altimetría + zonas FC/potencia.
+    const altRes = await fetch(
+      `${API}/activities/${id}/streams?keys=altitude,distance&key_by_type=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (altRes.status === 429) break;
+    if (altRes.ok) {
+      const alt = downsampleAltitude(await altRes.json());
+      if (alt) detail.kirolive_alt = alt;
+    }
+
+    const zRes = await fetch(`${API}/activities/${id}/zones`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (zRes.status === 429) break;
+    if (zRes.ok) {
+      const zones = await zRes.json();
+      if (Array.isArray(zones) && zones.length > 0) detail.kirolive_zones = zones;
+    }
+
+    // Meteo (API externa, opcional): no rompe el enriquecimiento si falla.
+    try {
+      const weather = await fetchWeather(detail);
+      if (weather) detail.kirolive_weather = weather;
+    } catch (_) { /* clima no disponible */ }
+
     const { error } = await admin.from("activities").upsert(detailRow(userId, detail));
     if (!error) enriched++;
   }

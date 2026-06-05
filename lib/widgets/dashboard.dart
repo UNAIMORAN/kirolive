@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../pages/compare_page.dart';
 import '../strava/format.dart';
 import '../strava/stats.dart';
 import '../theme.dart';
+import 'lift_card.dart';
 import 'trend_chart.dart';
 
 /// Panel de visualización interactivo: filtro por deporte, comparativa de
@@ -60,7 +62,25 @@ class _DashboardState extends State<Dashboard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Comparativa', style: theme.textTheme.titleMedium),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ComparePage(activities: widget.activities),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Comparativa', style: theme.textTheme.titleMedium),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.compare_arrows, size: 18, color: AppColors.accent),
+                  ],
+                ),
+              ),
+            ),
             SegmentedButton<String>(
               showSelectedIcon: false,
               style: _segStyle(theme),
@@ -102,16 +122,14 @@ class _DashboardState extends State<Dashboard> {
           ],
         ),
         const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 16, 12, 8),
-            child: Column(
-              children: [
-                _buildChart(stats),
-                const SizedBox(height: 8),
-                _metricChips(),
-              ],
-            ),
+        LiftCard(
+          padding: const EdgeInsets.fromLTRB(8, 16, 12, 8),
+          child: Column(
+            children: [
+              _buildChart(stats),
+              const SizedBox(height: 8),
+              _metricChips(),
+            ],
           ),
         ),
       ],
@@ -173,36 +191,28 @@ class _DashboardState extends State<Dashboard> {
   Widget _comparisonCard(ThemeData theme, Color muted, Stats stats, Metric m) {
     final c = stats.comparison(m, _period);
     final active = m == _metric;
-    return Card(
-      shape: active
-          ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: const BorderSide(color: AppColors.accent, width: 1.5),
-            )
+    return LiftCard(
+      padding: const EdgeInsets.all(16),
+      onTap: () => setState(() => _metric = m), // pulsar → métrica del gráfico
+      border: active
+          ? const BorderSide(color: AppColors.accent, width: 1.5)
           : null,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => setState(() => _metric = m), // pulsar → métrica del gráfico
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(child: Text(m.label, style: TextStyle(color: muted, fontSize: 13))),
-                  if (active)
-                    const Icon(Icons.show_chart, size: 14, color: AppColors.accent),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(_value(m, c.current),
-                  style: theme.textTheme.titleLarge?.copyWith(fontSize: 22)),
-              const SizedBox(height: 8),
-              _deltaChip(theme, m, c),
+              Expanded(child: Text(m.label, style: TextStyle(color: muted, fontSize: 13))),
+              if (active)
+                const Icon(Icons.show_chart, size: 14, color: AppColors.accent),
             ],
           ),
-        ),
+          const SizedBox(height: 6),
+          Text(_value(m, c.current),
+              style: theme.textTheme.titleLarge?.copyWith(fontSize: 22)),
+          const SizedBox(height: 8),
+          _deltaChip(theme, m, c),
+        ],
       ),
     );
   }

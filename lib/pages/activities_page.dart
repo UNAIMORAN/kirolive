@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../strava/format.dart';
+import '../strava/polyline.dart';
 import '../strava/strava_api.dart';
 import '../theme.dart';
 import '../widgets/climbing_loader.dart';
+import '../widgets/route_thumbnail.dart';
 import 'activity_detail_page.dart';
 
 /// Lista las actividades de Strava del usuario, con cabecera de resumen y
@@ -307,33 +309,84 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
     );
   }
 
+  // Ciudad de la actividad (si el detalle la trae).
+  String? _city(Map<String, dynamic> a) {
+    final r = a['raw'];
+    if (r is Map) {
+      final c = r['location_city'];
+      if (c is String && c.trim().isNotEmpty) return c.trim();
+    }
+    return null;
+  }
+
   Widget _buildTile(Map<String, dynamic> a) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     final sport = a['sport_type'] as String?;
     final isRun = Fmt.isRun(sport);
-    final pace = isRun ? Fmt.pace(a['average_speed_ms']) : Fmt.speed(a['average_speed_ms']);
+    final iso = a['start_date'] as String?;
 
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return ListTile(
-      leading: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(Fmt.icon(sport), color: AppColors.accent, size: 22),
-      ),
-      title: Text((a['name'] as String?) ?? 'Actividad',
-          maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${Fmt.distance(a['distance_m'])} · ${Fmt.duration(a['moving_time_s'])} · $pace',
-      ),
-      trailing: Text(
-        Fmt.date(a['start_date'] as String?),
-        style: TextStyle(fontSize: 12, color: muted),
-      ),
+    final pace = isRun ? Fmt.pace(a['average_speed_ms']) : Fmt.speed(a['average_speed_ms']);
+    final elev = (a['total_elevation_gain_m'] as num?)?.toDouble() ?? 0;
+
+    // Métricas distintivas (solo las que tienen valor).
+    final stats = <String>[
+      Fmt.distance(a['distance_m']),
+      Fmt.duration(a['moving_time_s']),
+      pace,
+      if (elev > 0) '↑ ${Fmt.elevation(elev)}',
+    ].join('  ·  ');
+
+    final route = activityPolyline(a);
+
+    // Línea de contexto: día, fecha, hora y lugar (lo que diferencia entrenos).
+    final city = _city(a);
+    final contextLine = [
+      '${Fmt.weekdayShort(iso)} ${Fmt.date(iso)}',
+      Fmt.time(iso),
+      if (city != null) city,
+    ].where((s) => s.isNotEmpty).join(' · ');
+
+    return InkWell(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => ActivityDetailPage(activity: a)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 46,
+              width: 46,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: route != null
+                  ? RouteThumbnail(encoded: route, size: 46, strokeWidth: 2)
+                  : Icon(Fmt.icon(sport), color: AppColors.accent, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (a['name'] as String?) ?? 'Actividad',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(contextLine, style: TextStyle(color: muted, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Text(stats, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'pages/login_page.dart';
 import 'scheme_registrar.dart';
 import 'supabase_config.dart';
 import 'theme.dart';
+import 'widgets/app_background.dart';
 import 'widgets/climbing_loader.dart';
 
 Future<void> main() async {
@@ -38,7 +39,12 @@ class TodoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      // La identidad "Kirol" es oscura y vibrante: la fijamos siempre.
+      themeMode: ThemeMode.dark,
+      // Fondo vivo (degradado + glows) por detrás de TODA la app, una sola vez.
+      // Por eso el scaffold y el AppBar van transparentes en el tema.
+      builder: (context, child) =>
+          AppBackground(child: child ?? const SizedBox.shrink()),
       home: const AuthGate(),
     );
   }

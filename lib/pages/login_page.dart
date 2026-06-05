@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
 import '../theme.dart';
+import '../widgets/brand.dart';
 
 // Esquema de URL al que vuelve el navegador tras el login con Google en
 // móvil y escritorio. Debe coincidir con lo configurado en Android/iOS y
@@ -114,28 +115,17 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Marca: una señal de "inteligencia", serena.
-                Center(
-                  child: Container(
-                    height: 60,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(Icons.insights_rounded,
-                        color: AppColors.accent, size: 30),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                // Marca de Kirolive.
+                const Center(child: KiroliveMark(size: 66, glow: true)),
+                const SizedBox(height: 22),
                 Text(
                   'Kirolive',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall,
+                  style: theme.textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Tu entrenador inteligente',
+                  'Deporte en vivo · progreso real',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                 ),
@@ -160,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2, color: AppColors.ink),
                         )
                       : const Text('Entrar'),
                 ),

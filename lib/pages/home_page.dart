@@ -7,8 +7,10 @@ import '../strava/stats.dart';
 import '../strava/strava_api.dart';
 import '../strava/strava_auth.dart';
 import '../theme.dart';
+import '../widgets/brand.dart';
 import '../widgets/climbing_loader.dart';
 import '../widgets/dashboard.dart';
+import '../widgets/lift_card.dart';
 import 'activities_page.dart';
 import 'activity_detail_page.dart';
 
@@ -145,17 +147,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         centerTitle: hasData,
         titleSpacing: hasData ? 8 : NavigationToolbar.kMiddleSpacing,
         leading: hasData
-            ? Center(
-                child: Container(
-                  height: 34,
-                  width: 34,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.insights_rounded, color: AppColors.accent, size: 18),
-                ),
-              )
+            ? const Center(child: KiroliveMark(size: 32))
             : null,
         leadingWidth: hasData ? 52 : null,
         title: hasData ? _buildHomeSearch(theme, muted) : const Text('Kirolive'),
@@ -221,7 +213,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         icon: _connecting
             ? const SizedBox(
                 height: 18, width: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.ink))
             : const Icon(Icons.link, size: 20),
         label: const Text('Conectar con Strava'),
       );
@@ -256,12 +248,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
     }
 
+    final dark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: theme.brightness == Brightness.dark ? 0.16 : 0.08),
+        color: tone.withValues(alpha: dark ? 0.16 : 0.08),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: tone.withValues(alpha: 0.22)),
+        border: Border.all(color: tone.withValues(alpha: 0.28)),
+        boxShadow: AppColors.cardLift(dark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,8 +264,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             children: [
               Container(
                 height: 40, width: 40,
-                decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+                decoration: const BoxDecoration(
+                  gradient: AppColors.brandGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome, color: AppColors.ink, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
@@ -293,57 +290,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final isRun = Fmt.isRun(sport);
     final pace = isRun ? Fmt.pace(a['average_speed_ms']) : Fmt.speed(a['average_speed_ms']);
 
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ActivityDetailPage(activity: a)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return LiftCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ActivityDetailPage(activity: a)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    height: 42,
-                    width: 42,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Fmt.icon(sport), color: AppColors.accent, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text((a['name'] as String?) ?? 'Actividad',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 2),
-                        Text('${Fmt.sport(sport)} · ${Fmt.date(a['start_date'] as String?)}',
-                            style: theme.textTheme.bodySmall?.copyWith(color: muted)),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: muted),
-                ],
+              Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Fmt.icon(sport), color: AppColors.accent, size: 22),
               ),
-              const Divider(height: 28),
-              Row(
-                children: [
-                  _stat(theme, 'Distancia', Fmt.distance(a['distance_m'])),
-                  _stat(theme, 'Tiempo', Fmt.duration(a['moving_time_s'])),
-                  _stat(theme, isRun ? 'Ritmo' : 'Velocidad', pace),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text((a['name'] as String?) ?? 'Actividad',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text('${Fmt.sport(sport)} · ${Fmt.date(a['start_date'] as String?)}',
+                        style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                  ],
+                ),
               ),
+              Icon(Icons.chevron_right, color: muted),
             ],
           ),
-        ),
+          const Divider(height: 28),
+          Row(
+            children: [
+              _stat(theme, 'Distancia', Fmt.distance(a['distance_m'])),
+              _stat(theme, 'Tiempo', Fmt.duration(a['moving_time_s'])),
+              _stat(theme, isRun ? 'Ritmo' : 'Velocidad', pace),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -363,37 +354,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget _buildActivitiesEntry(ThemeData theme, Color muted) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ActivitiesPage()),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              const Icon(Icons.directions_run, color: AppColors.accent),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Actividades', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      _activities.isNotEmpty
-                          ? '${_activities.length} sincronizadas'
-                          : 'Sincroniza tus entrenamientos',
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                    ),
-                  ],
+    return LiftCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ActivitiesPage()),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.directions_run, color: AppColors.accent),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Actividades', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  _activities.isNotEmpty
+                      ? '${_activities.length} sincronizadas'
+                      : 'Sincroniza tus entrenamientos',
+                  style: theme.textTheme.bodySmall?.copyWith(color: muted),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: muted),
-            ],
+              ],
+            ),
           ),
-        ),
+          Icon(Icons.chevron_right, color: muted),
+        ],
       ),
     );
   }

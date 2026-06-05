@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 120 120">
+  <!--
+    Vista previa del logomark de Kirolive (KiroliveMark).
+    Geometría IDÉNTICA a lib/widgets/brand.dart (_KMarkPainter), en 0..1 * 120:
+    K rotunda + líneas de velocidad + remates de bola + trazado de ruta de fondo.
+    Ábrelo en el navegador o en VS Code (clic derecho > Open Preview).
+  -->
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C6F432"/>   <!-- energy / lima -->
+      <stop offset="1" stop-color="#14B88A"/>   <!-- accent / teal -->
+    </linearGradient>
+    <clipPath id="sq"><rect width="120" height="120" rx="33.6"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#sq)">
+    <!-- Cuadrado con el gradiente de marca -->
+    <rect width="120" height="120" fill="url(#brand)"/>
+
+    <!-- Trazado de "ruta" de fondo (más claro), abajo-derecha -->
+    <g fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2.64" stroke-linecap="round">
+      <path d="M118.8 62.4 Q93.6 110.4 50.4 120"/>
+      <path d="M122.4 75.6 Q100.8 116.4 60 124.8"/>
+    </g>
+
+    <!-- Líneas de velocidad (la personalidad) -->
+    <g stroke="#0A140F" stroke-width="7.2" stroke-linecap="round">
+      <path d="M16.2 62.4 L30.6 62.4"/>
+      <path d="M10.2 72 L30.6 72"/>
+      <path d="M17.4 81.6 L30.6 81.6"/>
+    </g>
+
+    <!-- "K": asta + brazos -->
+    <g fill="none" stroke="#0A140F" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M40.2 25.8 L40.2 89.4"/>
+      <path d="M78.6 29.4 L40.2 55.2 L84 88.2"/>
+    </g>
+
+    <!-- Remates de bola en las puntas de los brazos -->
+    <circle cx="78.6" cy="29.4" r="10.2" fill="#0A140F"/>
+    <circle cx="84" cy="88.2" r="10.2" fill="#0A140F"/>
+  </g>
+</svg>

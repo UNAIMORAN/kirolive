@@ -3,9 +3,9 @@
     "short_name": "Kirolive",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "App Kirolive.",
+    "background_color": "#0A0F0D",
+    "theme_color": "#0A0F0D",
+    "description": "Kirolive · tu entrenador inteligente de deporte en vivo.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

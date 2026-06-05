@@ -44,6 +44,14 @@ dependencies:
   # Abre el navegador para el login OAuth de Strava.
   url_launcher: ^6.3.0
 
+  # Descarga la imagen del mapa estático de Mapbox (bytes -> Image.memory).
+  # Evita el fallo de CanvasKit con imágenes de otro dominio en Flutter web.
+  http: ^1.6.0
+
+  # Tipografía de marca: Space Grotesk (titulares) + Inter (cuerpo).
+  # Se descargan/cachean en tiempo de ejecución; no hay que empaquetar .ttf.
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

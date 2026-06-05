@@ -40,6 +40,24 @@ class Fmt {
     return '${meters.round()} m';
   }
 
+  /// Altitud (admite 0 y negativos): 1234.5 -> "1235 m".
+  static String altitude(num? meters) {
+    if (meters == null) return '—';
+    return '${meters.round()} m';
+  }
+
+  /// Temperatura: 21 -> "21 °C" (admite negativos).
+  static String temp(num? celsius) {
+    if (celsius == null) return '—';
+    return '${celsius.round()} °C';
+  }
+
+  /// Energía/trabajo (ciclismo con potencia): 3045.6 -> "3045 kJ".
+  static String energy(num? kilojoules) {
+    if (kilojoules == null || kilojoules <= 0) return '—';
+    return '${kilojoules.round()} kJ';
+  }
+
   /// Pulsaciones: 152.3 -> "152 ppm".
   static String heartrate(num? bpm) {
     if (bpm == null || bpm <= 0) return '—';
@@ -64,6 +82,21 @@ class Fmt {
   static String date(String? iso) {
     final d = _parse(iso);
     return d == null ? '' : _date(d);
+  }
+
+  /// Hora local: "18:30".
+  static String time(String? iso) {
+    final d = _parse(iso);
+    if (d == null) return '';
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Día de la semana abreviado: "Sáb".
+  static String weekdayShort(String? iso) {
+    final d = _parse(iso);
+    if (d == null) return '';
+    const w = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    return w[d.weekday - 1];
   }
 
   /// Nombre legible del deporte en español.
