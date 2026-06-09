@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../env.dart';
+import '../l10n/app_localizations.dart';
 import '../strava/polyline.dart';
 import '../strava/static_map.dart';
 import '../theme.dart';
@@ -77,6 +78,7 @@ class RouteMap extends StatelessWidget {
     if (decodePolyline(encoded).length < 2) return const SizedBox.shrink();
     final dark = Theme.of(context).brightness == Brightness.dark;
     final muted = dark ? AppColors.darkMuted : AppColors.lightMuted;
+    final l = AppLocalizations.of(context);
     final showError = kDebugMode && error != null;
     return Container(
       color: dark ? AppColors.darkField : AppColors.lightField,
@@ -93,7 +95,7 @@ class RouteMap extends StatelessWidget {
           if (!hasMapboxToken) ...[
             const SizedBox(height: 8),
             Text(
-              'Añade un token de Mapbox (lib/env.dart) para ver el mapa',
+              l.mapboxTokenHint,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: muted),
             ),

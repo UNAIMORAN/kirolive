@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../main.dart';
 import '../strava/format.dart';
 import '../strava/stats.dart';
@@ -10,6 +13,7 @@ import '../theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/climbing_loader.dart';
 import '../widgets/dashboard.dart';
+import '../widgets/language_selector.dart';
 import '../widgets/lift_card.dart';
 import 'activities_page.dart';
 import 'activity_detail_page.dart';
@@ -57,9 +61,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final result = params['strava'];
     if (result == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
       _showMessage(result == 'ok'
-          ? 'Strava conectado.'
-          : 'No se pudo conectar Strava (${params['detail'] ?? 'error'}).');
+          ? l.stravaConnected
+          : l.stravaConnectError(params['detail'] ?? 'error'));
     });
   }
 
@@ -81,11 +87,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _connect() async {
+    final l = AppLocalizations.of(context);
     setState(() => _connecting = true);
     try {
       await StravaAuth.connect();
     } catch (_) {
-      _showMessage('No se pudo iniciar la conexión con Strava.');
+      _showMessage(l.stravaConnectStartFailed);
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
@@ -104,6 +111,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Buscador del AppBar de la home: no escribe aquí, abre Actividades con el
   /// buscador enfocado (reutiliza el buscador potente de esa pantalla).
   Widget _buildHomeSearch(ThemeData theme, Color muted) {
+    final l = AppLocalizations.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 520),
       child: SizedBox(
@@ -115,7 +123,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           decoration: InputDecoration(
             isDense: true,
-            hintText: 'Buscar entrenos…',
+            hintText: l.searchWorkoutsHint,
             hintStyle: TextStyle(color: muted, fontSize: 14),
             prefixIcon: Icon(Icons.search, color: muted, size: 20),
             contentPadding: EdgeInsets.zero,
@@ -125,20 +133,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Fecha de hoy en el idioma activo (p. ej. "Jueves, 4 de junio de 2026").
   String _todayLabel() {
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const months = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-    ];
-    final n = DateTime.now();
-    return '${days[n.weekday - 1]}, ${n.day} de ${months[n.month - 1]}';
+    final s = DateFormat.yMMMMEEEEd().format(DateTime.now());
+    return s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     final connected = _account != null;
     final hasData = connected && _activities.isNotEmpty;
 
@@ -155,19 +160,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_horiz),
             onSelected: (value) {
+              if (value == 'language') showLanguagePicker(context);
               if (value == 'disconnect') _disconnect();
               if (value == 'logout') supabase.auth.signOut();
             },
             itemBuilder: (context) => [
+              PopupMenuItem(value: 'language', child: Text(l.language)),
               if (connected)
-                const PopupMenuItem(value: 'disconnect', child: Text('Desvincular Strava')),
-              const PopupMenuItem(value: 'logout', child: Text('Cerrar sesión')),
+                PopupMenuItem(value: 'disconnect', child: Text(l.menuDisconnectStrava)),
+              PopupMenuItem(value: 'logout', child: Text(l.menuLogout)),
             ],
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: ClimbingLoader(message: 'Preparando tus datos…'))
+          ? Center(child: ClimbingLoader(message: l.preparingData))
           : RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -182,7 +189,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   _buildHeadlineCard(theme, connected, hasData),
                   if (hasData) ...[
                     const SizedBox(height: 28),
-                    Text('Último entreno', style: theme.textTheme.titleMedium),
+                    Text(l.lastWorkout, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 12),
                     _buildLastWorkout(theme),
                     const SizedBox(height: 28),
@@ -199,15 +206,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Tarjeta protagonista: titular de estado. Hoy muestra una tendencia real
   /// calculada; en la fase de IA mostrará la conclusión del entrenador.
   Widget _buildHeadlineCard(ThemeData theme, bool connected, bool hasData) {
+    final l = AppLocalizations.of(context);
     String title;
     String body;
     Color tone = AppColors.accent;
     Widget? action;
 
     if (!connected) {
-      title = 'Conecta para empezar';
-      body = 'Vincula tu cuenta de Strava para que tu entrenador empiece a '
-          'analizar tus entrenamientos. Solo leemos tus actividades.';
+      title = l.headlineConnectTitle;
+      body = l.headlineConnectBody;
       action = FilledButton.icon(
         onPressed: _connecting ? null : _connect,
         icon: _connecting
@@ -215,36 +222,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 height: 18, width: 18,
                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.ink))
             : const Icon(Icons.link, size: 20),
-        label: const Text('Conectar con Strava'),
+        label: Text(l.connectStrava),
       );
     } else if (!hasData) {
-      title = 'Sincroniza tus entrenos';
-      body = 'Aún no has descargado tus actividades. Sincronízalas para que tu '
-          'entrenador pueda analizarlas.';
+      title = l.headlineSyncTitle;
+      body = l.headlineSyncBody;
       action = FilledButton.icon(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const ActivitiesPage()),
         ),
         icon: const Icon(Icons.sync, size: 20),
-        label: const Text('Ir a sincronizar'),
+        label: Text(l.goSync),
       );
     } else {
       final c = Stats(_activities).comparison(Metric.distance, 'month');
       final pct = c.pctChange;
       if (pct == null) {
-        title = 'Construyendo tu base';
-        body = 'Sigue registrando entrenamientos para ver tu progresión mes a mes.';
+        title = l.headlineBaseTitle;
+        body = l.headlineBaseBody;
       } else if (pct > 5) {
-        title = 'Vas en progreso';
-        body = 'Tu volumen este mes sube un ${pct.toStringAsFixed(0)}% respecto al anterior. Buen ritmo.';
+        title = l.headlineProgressTitle;
+        body = l.headlineProgressBody(pct.round());
         tone = AppColors.positive;
       } else if (pct < -5) {
-        title = 'Semana más suave';
-        body = 'Tu volumen baja un ${pct.abs().toStringAsFixed(0)}% respecto al mes pasado. Puede ser descarga o descanso.';
+        title = l.headlineEasierTitle;
+        body = l.headlineEasierBody(pct.abs().round());
         tone = AppColors.caution;
       } else {
-        title = 'Te mantienes estable';
-        body = 'Tu volumen es similar al del mes pasado. Constancia.';
+        title = l.headlineStableTitle;
+        body = l.headlineStableBody;
       }
     }
 
@@ -284,6 +290,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Tarjeta con lo más relevante del entreno más reciente (pulsable → detalle).
   Widget _buildLastWorkout(ThemeData theme) {
+    final l = AppLocalizations.of(context);
     final a = _activities.first; // ya vienen ordenadas por fecha desc
     final muted = theme.colorScheme.onSurfaceVariant;
     final sport = a['sport_type'] as String?;
@@ -313,12 +320,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text((a['name'] as String?) ?? 'Actividad',
+                    Text((a['name'] as String?) ?? l.activityFallback,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium),
                     const SizedBox(height: 2),
-                    Text('${Fmt.sport(sport)} · ${Fmt.date(a['start_date'] as String?)}',
+                    Text('${sportName(l, sport)} · ${Fmt.date(a['start_date'] as String?)}',
                         style: theme.textTheme.bodySmall?.copyWith(color: muted)),
                   ],
                 ),
@@ -329,9 +336,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           const Divider(height: 28),
           Row(
             children: [
-              _stat(theme, 'Distancia', Fmt.distance(a['distance_m'])),
-              _stat(theme, 'Tiempo', Fmt.duration(a['moving_time_s'])),
-              _stat(theme, isRun ? 'Ritmo' : 'Velocidad', pace),
+              _stat(theme, l.statDistance, Fmt.distance(a['distance_m'])),
+              _stat(theme, l.statTime, Fmt.duration(a['moving_time_s'])),
+              _stat(theme, isRun ? l.statPace : l.statSpeed, pace),
             ],
           ),
         ],
@@ -354,6 +361,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget _buildActivitiesEntry(ThemeData theme, Color muted) {
+    final l = AppLocalizations.of(context);
     return LiftCard(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const ActivitiesPage()),
@@ -366,12 +374,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Actividades', style: theme.textTheme.titleMedium),
+                Text(l.activities, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 2),
                 Text(
                   _activities.isNotEmpty
-                      ? '${_activities.length} sincronizadas'
-                      : 'Sincroniza tus entrenamientos',
+                      ? l.activitiesSynced(_activities.length)
+                      : l.syncYourWorkouts,
                   style: theme.textTheme.bodySmall?.copyWith(color: muted),
                 ),
               ],

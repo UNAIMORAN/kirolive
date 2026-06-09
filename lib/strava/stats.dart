@@ -6,13 +6,8 @@
 enum Metric { distance, time, elevation, heartrate }
 
 extension MetricInfo on Metric {
-  String get label => switch (this) {
-        Metric.distance => 'Distancia',
-        Metric.time => 'Tiempo',
-        Metric.elevation => 'Desnivel',
-        Metric.heartrate => 'FC media',
-      };
-
+  // La etiqueta visible se obtiene con metricLabel(...) en lib/l10n/labels.dart
+  // (depende del idioma). Aquí solo viven la unidad y si es acumulable.
   String get unit => switch (this) {
         Metric.distance => 'km',
         Metric.time => 'h',

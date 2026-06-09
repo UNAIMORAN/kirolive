@@ -1,0 +1,11 @@
+# Configuración de la generación de localización de Flutter (gen-l10n).
+# Lee los .arb de lib/l10n y genera AppLocalizations en lib/l10n.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n
+# Genera archivos reales en lib/l10n (no el paquete sintético).
+synthetic-package: false
+# AppLocalizations.of(context) devuelve no-nulo (sin '!').
+nullable-getter: false

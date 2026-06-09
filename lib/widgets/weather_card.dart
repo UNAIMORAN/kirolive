@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../theme.dart';
 
 /// Tarjeta con la meteo que hacía durante la actividad.
@@ -13,6 +15,7 @@ class WeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     final temp = data['temp'] as num?;
@@ -20,11 +23,14 @@ class WeatherCard extends StatelessWidget {
     final precip = data['precip'] as num?;
     final wind = data['wind'] as num?;
     final windDir = data['wind_dir'] as num?;
-    final (icon, label) = _condition((data['code'] as num?)?.round());
+    final code = (data['code'] as num?)?.round();
+    final icon = _weatherIcon(code);
+    final label = weatherLabel(l, code);
+    final dirs = l.compassDirs.split(',');
 
     final chips = <Widget>[
       if (wind != null)
-        _chip(Icons.air, '${wind.round()} km/h${windDir != null ? ' ${_compass(windDir)}' : ''}', muted),
+        _chip(Icons.air, '${wind.round()} km/h${windDir != null ? ' ${_compass(windDir, dirs)}' : ''}', muted),
       if (humidity != null) _chip(Icons.water_drop_outlined, '${humidity.round()} %', muted),
       if (precip != null && precip > 0) _chip(Icons.umbrella, '${_precip(precip)} mm', muted),
     ];
@@ -76,58 +82,58 @@ class WeatherCard extends StatelessWidget {
   String _precip(num mm) => mm >= 10 ? mm.round().toString() : mm.toStringAsFixed(1);
 
   /// Rumbo del viento en texto a partir de los grados (de dónde sopla).
-  String _compass(num deg) {
-    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+  /// [dirs] = los 8 puntos cardinales ya localizados (l.compassDirs).
+  String _compass(num deg, List<String> dirs) {
     return dirs[(((deg % 360) + 22.5) ~/ 45) % 8];
   }
 
-  /// Código WMO de Open-Meteo -> (icono, condición en español).
-  (IconData, String) _condition(int? code) {
+  /// Código WMO de Open-Meteo -> icono. La etiqueta la da weatherLabel(...).
+  IconData _weatherIcon(int? code) {
     switch (code) {
       case 0:
-        return (Icons.wb_sunny, 'Despejado');
+        return Icons.wb_sunny;
       case 1:
-        return (Icons.wb_sunny_outlined, 'Mayormente despejado');
+        return Icons.wb_sunny_outlined;
       case 2:
-        return (Icons.wb_cloudy, 'Parcialmente nublado');
+        return Icons.wb_cloudy;
       case 3:
-        return (Icons.cloud, 'Nublado');
+        return Icons.cloud;
       case 45:
       case 48:
-        return (Icons.foggy, 'Niebla');
+        return Icons.foggy;
       case 51:
       case 53:
       case 55:
-        return (Icons.grain, 'Llovizna');
+        return Icons.grain;
       case 56:
       case 57:
-        return (Icons.ac_unit, 'Llovizna helada');
+        return Icons.ac_unit;
       case 61:
       case 63:
       case 65:
-        return (Icons.water_drop, 'Lluvia');
+        return Icons.water_drop;
       case 66:
       case 67:
-        return (Icons.ac_unit, 'Lluvia helada');
+        return Icons.ac_unit;
       case 71:
       case 73:
       case 75:
       case 77:
-        return (Icons.ac_unit, 'Nieve');
+        return Icons.ac_unit;
       case 80:
       case 81:
       case 82:
-        return (Icons.grain, 'Chubascos');
+        return Icons.grain;
       case 85:
       case 86:
-        return (Icons.ac_unit, 'Chubascos de nieve');
+        return Icons.ac_unit;
       case 95:
-        return (Icons.thunderstorm, 'Tormenta');
+        return Icons.thunderstorm;
       case 96:
       case 99:
-        return (Icons.thunderstorm, 'Tormenta con granizo');
+        return Icons.thunderstorm;
       default:
-        return (Icons.thermostat, 'Meteo');
+        return Icons.thermostat;
     }
   }
 }

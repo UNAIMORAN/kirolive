@@ -2,9 +2,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../theme.dart';
 import '../widgets/brand.dart';
+import '../widgets/language_selector.dart';
 
 // Esquema de URL al que vuelve el navegador tras el login con Google en
 // móvil y escritorio. Debe coincidir con lo configurado en Android/iOS y
@@ -35,6 +37,7 @@ class _LoginPageState extends State<LoginPage> {
 
   /// Inicia sesión con un usuario ya registrado.
   Future<void> _signIn() async {
+    final l = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       await supabase.auth.signInWithPassword(
@@ -45,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
     } on AuthException catch (error) {
       _showMessage(error.message);
     } catch (error) {
-      _showMessage('Ocurrió un error inesperado.');
+      _showMessage(l.errorUnexpected);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -54,6 +57,7 @@ class _LoginPageState extends State<LoginPage> {
   /// Registra un usuario nuevo. Con "Confirm email" desactivado en Supabase,
   /// la sesión queda activa de inmediato.
   Future<void> _signUp() async {
+    final l = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       final response = await supabase.auth.signUp(
@@ -62,12 +66,12 @@ class _LoginPageState extends State<LoginPage> {
       );
       // Si la confirmación por email está activada, no habrá sesión todavía.
       if (response.session == null && mounted) {
-        _showMessage('Revisa tu correo para confirmar la cuenta.');
+        _showMessage(l.checkEmailConfirm);
       }
     } on AuthException catch (error) {
       _showMessage(error.message);
     } catch (error) {
-      _showMessage('Ocurrió un error inesperado.');
+      _showMessage(l.errorUnexpected);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -79,6 +83,7 @@ class _LoginPageState extends State<LoginPage> {
   /// a la app y la sesión llega por `onAuthStateChange` (el AuthGate cambia solo
   /// de pantalla), igual que con el login de email.
   Future<void> _signInWithGoogle() async {
+    final l = AppLocalizations.of(context);
     try {
       await supabase.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -89,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
     } on AuthException catch (error) {
       _showMessage(error.message);
     } catch (error) {
-      _showMessage('No se pudo iniciar sesión con Google.');
+      _showMessage(l.errorGoogleSignIn);
     }
   }
 
@@ -104,82 +109,99 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Marca de Kirolive.
-                const Center(child: KiroliveMark(size: 66, glow: true)),
-                const SizedBox(height: 22),
-                Text(
-                  'Kirolive',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Deporte en vivo · progreso real',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 36),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  autocorrect: false,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _signIn,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.ink),
-                        )
-                      : const Text('Entrar'),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: _loading ? null : _signUp,
-                  child: const Text('Crear cuenta'),
-                ),
-                const SizedBox(height: 24),
-                Row(
+      body: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('o', style: TextStyle(color: muted)),
+                    // Marca de Kirolive.
+                    const Center(child: KiroliveMark(size: 66, glow: true)),
+                    const SizedBox(height: 22),
+                    Text(
+                      'Kirolive',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineMedium,
                     ),
-                    const Expanded(child: Divider()),
+                    const SizedBox(height: 6),
+                    Text(
+                      l.appTagline,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                    ),
+                    const SizedBox(height: 36),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      decoration: InputDecoration(labelText: l.email),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(labelText: l.password),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _loading ? null : _signIn,
+                      child: _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppColors.ink),
+                            )
+                          : Text(l.signIn),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      onPressed: _loading ? null : _signUp,
+                      child: Text(l.createAccount),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(l.orWord, style: TextStyle(color: muted)),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: _loading ? null : _signInWithGoogle,
+                      icon: const Icon(Icons.g_mobiledata, size: 26),
+                      label: Text(l.continueWithGoogle),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: _loading ? null : _signInWithGoogle,
-                  icon: const Icon(Icons.g_mobiledata, size: 26),
-                  label: const Text('Continuar con Google'),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          // Selector de idioma (arriba a la derecha), también antes de entrar.
+          Positioned(
+            top: 4,
+            right: 4,
+            child: SafeArea(
+              child: IconButton(
+                tooltip: l.language,
+                icon: Icon(Icons.language, color: muted),
+                onPressed: () => showLanguagePicker(context),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

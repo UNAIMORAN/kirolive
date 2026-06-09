@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// Desglose del tiempo pasado en cada zona de esfuerzo (FC o potencia).
 ///
 /// Lee `raw.kirolive_zones`, el array que devuelve el endpoint `/zones` de
@@ -40,12 +42,13 @@ class ZonesBreakdown extends StatelessWidget {
   }
 
   Widget _zoneBlock(BuildContext context, String type, List buckets) {
+    final l = AppLocalizations.of(context);
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final title = type == 'heartrate'
-        ? 'Zonas de frecuencia cardiaca'
+        ? l.zonesHr
         : type == 'power'
-            ? 'Zonas de potencia'
-            : 'Zonas';
+            ? l.zonesPower
+            : l.zonesGeneric;
     final unit = type == 'power' ? 'W' : 'ppm';
 
     int total = 0;

@@ -27,43 +27,46 @@ List<double>? _latlng(Map<String, dynamic> a, String key) {
 //  Métricas comparables (cara a cara)
 // ---------------------------------------------------------------------------
 class CompareMetric {
-  final String label;
+  /// Clave de traducción (ver compareMetricLabel en lib/l10n/labels.dart).
+  final String labelKey;
   final double? Function(Map<String, dynamic>) value;
   final String Function(double) format;
   final bool lowerIsBetter; // p. ej. tiempo: menos es mejor
 
-  const CompareMetric(this.label, this.value, this.format, {this.lowerIsBetter = false});
+  const CompareMetric(this.labelKey, this.value, this.format, {this.lowerIsBetter = false});
 }
 
 final List<CompareMetric> compareMetrics = [
-  CompareMetric('Distancia', (a) => _col(a, 'distance_m'), Fmt.distance),
-  CompareMetric('Tiempo en movimiento', (a) => _col(a, 'moving_time_s'), Fmt.duration,
+  CompareMetric('metricDistance', (a) => _col(a, 'distance_m'), Fmt.distance),
+  CompareMetric('metricMovingTime', (a) => _col(a, 'moving_time_s'), Fmt.duration,
       lowerIsBetter: true),
-  CompareMetric('Tiempo total', (a) => _col(a, 'elapsed_time_s'), Fmt.duration,
+  CompareMetric('metricTotalTime', (a) => _col(a, 'elapsed_time_s'), Fmt.duration,
       lowerIsBetter: true),
-  CompareMetric('Velocidad media', (a) => _col(a, 'average_speed_ms'), Fmt.speed),
-  CompareMetric('Velocidad máxima', (a) => _col(a, 'max_speed_ms'), Fmt.speed),
-  CompareMetric('Desnivel', (a) => _col(a, 'total_elevation_gain_m'), Fmt.elevation),
-  CompareMetric('FC media', (a) => _col(a, 'average_heartrate'), Fmt.heartrate),
-  CompareMetric('FC máxima', (a) => _col(a, 'max_heartrate'), Fmt.heartrate),
-  CompareMetric('Potencia media', (a) => _col(a, 'average_watts'), Fmt.watts),
-  CompareMetric('Cadencia', (a) => _col(a, 'average_cadence'), (v) => '${v.round()} rpm'),
-  CompareMetric('Calorías', (a) => _col(a, 'calories'), (v) => '${v.round()} kcal'),
-  CompareMetric('Esfuerzo', (a) => _col(a, 'suffer_score'), (v) => v.round().toString()),
-  CompareMetric('Temperatura', (a) => _raw(a, 'average_temp'), (v) => '${v.round()} °C'),
-  CompareMetric('Kudos', (a) => _raw(a, 'kudos_count'), (v) => v.round().toString()),
+  CompareMetric('metricAvgSpeed', (a) => _col(a, 'average_speed_ms'), Fmt.speed),
+  CompareMetric('metricMaxSpeed', (a) => _col(a, 'max_speed_ms'), Fmt.speed),
+  CompareMetric('metricElevation', (a) => _col(a, 'total_elevation_gain_m'), Fmt.elevation),
+  CompareMetric('metricAvgHr', (a) => _col(a, 'average_heartrate'), Fmt.heartrate),
+  CompareMetric('metricMaxHr', (a) => _col(a, 'max_heartrate'), Fmt.heartrate),
+  CompareMetric('metricAvgPower', (a) => _col(a, 'average_watts'), Fmt.watts),
+  CompareMetric('metricCadence', (a) => _col(a, 'average_cadence'), (v) => '${v.round()} rpm'),
+  CompareMetric('metricCalories', (a) => _col(a, 'calories'), (v) => '${v.round()} kcal'),
+  CompareMetric('metricEffort', (a) => _col(a, 'suffer_score'), (v) => v.round().toString()),
+  CompareMetric('metricTemperature', (a) => _raw(a, 'average_temp'), (v) => '${v.round()} °C'),
+  CompareMetric('kudos', (a) => _raw(a, 'kudos_count'), (v) => v.round().toString()),
 ];
 
 // ---------------------------------------------------------------------------
 //  Detección de rutas repetidas
 // ---------------------------------------------------------------------------
 class RouteGroup {
-  final String label;
-  final String sport;
+  /// Nombre repetido de las actividades del grupo (si lo hay); si no, null y la
+  /// UI compone la etiqueta con el deporte localizado + la distancia.
+  final String? commonName;
+  final String? sportType; // sport_type de Strava (para localizar el nombre)
   final double distanceKm;
   final List<Map<String, dynamic>> activities; // ordenadas por fecha (asc)
 
-  RouteGroup(this.label, this.sport, this.distanceKm, this.activities);
+  RouteGroup(this.commonName, this.sportType, this.distanceKm, this.activities);
 
   /// Actividad con menor tiempo en movimiento (el récord).
   Map<String, dynamic> get fastest => activities.reduce((a, b) =>
@@ -95,9 +98,8 @@ List<RouteGroup> detectRoutes(List<Map<String, dynamic>> acts) {
     if (list.length < 2) return;
     list.sort((a, b) => (a['start_date'] as String).compareTo(b['start_date'] as String));
     final km = ((list.first['distance_m'] as num?)?.toDouble() ?? 0) / 1000;
-    final sport = list.first['sport_type'] as String?;
-    final label = _commonName(list) ?? '${Fmt.sport(sport)} · ${km.toStringAsFixed(1)} km';
-    groups.add(RouteGroup(label, Fmt.sport(sport), km, list));
+    final sportType = list.first['sport_type'] as String?;
+    groups.add(RouteGroup(_commonName(list), sportType, km, list));
   });
   groups.sort((a, b) => b.activities.length.compareTo(a.activities.length));
   return groups;
@@ -132,7 +134,7 @@ PeriodAgg aggregate(
   List<Map<String, dynamic>> acts,
   DateTime start,
   DateTime end, {
-  String sport = 'Todos',
+  String sportKey = '',
 }) {
   double km = 0, h = 0, elev = 0, cal = 0;
   final hrs = <double>[];
@@ -140,7 +142,7 @@ PeriodAgg aggregate(
   for (final a in acts) {
     final d = DateTime.tryParse((a['start_date'] as String?) ?? '')?.toLocal();
     if (d == null || d.isBefore(start) || !d.isBefore(end)) continue;
-    if (sport != 'Todos' && Fmt.sport(a['sport_type'] as String?) != sport) continue;
+    if (sportKey.isNotEmpty && Fmt.sportKey(a['sport_type'] as String?) != sportKey) continue;
     count++;
     km += ((a['distance_m'] as num?)?.toDouble() ?? 0) / 1000;
     h += ((a['moving_time_s'] as num?)?.toDouble() ?? 0) / 3600;

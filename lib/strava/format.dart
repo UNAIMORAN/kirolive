@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Funciones para mostrar los datos de Strava de forma legible.
 /// Strava entrega distancias en metros, tiempos en segundos y velocidad en m/s.
@@ -70,46 +71,43 @@ class Fmt {
     return '${w.round()} W';
   }
 
-  /// Fecha y hora locales: "12/05/2026 · 18:30".
+  /// Fecha y hora locales en el idioma activo: "9/6/2026 · 18:30".
   static String dateTime(String? iso) {
     final d = _parse(iso);
     if (d == null) return '';
-    return '${_date(d)} · ${d.hour.toString().padLeft(2, '0')}:'
-        '${d.minute.toString().padLeft(2, '0')}';
+    return '${DateFormat.yMd().format(d)} · ${DateFormat.Hm().format(d)}';
   }
 
-  /// Solo fecha: "12/05/2026".
+  /// Solo fecha, en el idioma activo.
   static String date(String? iso) {
     final d = _parse(iso);
-    return d == null ? '' : _date(d);
+    return d == null ? '' : DateFormat.yMd().format(d);
   }
 
   /// Hora local: "18:30".
   static String time(String? iso) {
     final d = _parse(iso);
-    if (d == null) return '';
-    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    return d == null ? '' : DateFormat.Hm().format(d);
   }
 
-  /// Día de la semana abreviado: "Sáb".
+  /// Día de la semana abreviado en el idioma activo (p. ej. "lar.").
   static String weekdayShort(String? iso) {
     final d = _parse(iso);
-    if (d == null) return '';
-    const w = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    return w[d.weekday - 1];
+    return d == null ? '' : DateFormat.E().format(d);
   }
 
-  /// Nombre legible del deporte en español.
-  static String sport(String? sportType) {
+  /// Clave canónica del deporte (estable entre idiomas). La etiqueta visible la
+  /// resuelve `sportName(...)` en lib/l10n/labels.dart según el idioma activo.
+  static String sportKey(String? sportType) {
     final s = (sportType ?? '').toLowerCase();
-    if (s.contains('run')) return 'Carrera';
-    if (s.contains('trail')) return 'Trail';
-    if (s.contains('ride') || s.contains('bike') || s.contains('cycl')) return 'Ciclismo';
-    if (s.contains('swim')) return 'Natación';
-    if (s.contains('walk')) return 'Caminata';
-    if (s.contains('hike')) return 'Senderismo';
-    if (s.contains('workout') || s.contains('weight')) return 'Entrenamiento';
-    return sportType ?? 'Actividad';
+    if (s.contains('run')) return 'run';
+    if (s.contains('trail')) return 'trail';
+    if (s.contains('ride') || s.contains('bike') || s.contains('cycl')) return 'ride';
+    if (s.contains('swim')) return 'swim';
+    if (s.contains('walk')) return 'walk';
+    if (s.contains('hike')) return 'hike';
+    if (s.contains('workout') || s.contains('weight')) return 'workout';
+    return 'other';
   }
 
   /// Icono según el deporte.
@@ -134,7 +132,4 @@ class Fmt {
     if (iso == null) return null;
     return DateTime.tryParse(iso)?.toLocal();
   }
-
-  static String _date(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../strava/format.dart';
 import '../strava/polyline.dart';
 import '../strava/strava_api.dart';
@@ -28,7 +31,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   List<Map<String, dynamic>> _all = [];
   bool _loading = true;
   bool _syncing = false;
-  String _filter = 'Todos'; // nombre de deporte o 'Todos'
+  String _filter = 'all'; // clave de deporte ('all' = todos)
   String _query = ''; // texto del buscador
   final _searchController = TextEditingController();
 
@@ -49,11 +52,12 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   Future<void> _load() async {
+    final l = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       _all = await StravaApi.activities();
     } catch (_) {
-      _showMessage('No se pudieron cargar las actividades.');
+      _showMessage(l.loadActivitiesFailed);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -73,12 +77,13 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   String _syncMessage(SyncResult r) {
-    if (r.synced == 0 && r.enriched == 0) return 'Ya estás al día.';
+    final l = AppLocalizations.of(context);
+    if (r.synced == 0 && r.enriched == 0) return l.syncUpToDate;
     final parts = <String>[];
-    if (r.synced > 0) parts.add('${r.synced} sincronizadas');
-    if (r.enriched > 0) parts.add('${r.enriched} con detalle');
+    if (r.synced > 0) parts.add(l.activitiesSynced(r.synced));
+    if (r.enriched > 0) parts.add(l.syncDetailed(r.enriched));
     var msg = '${parts.join(', ')}.';
-    if (r.remaining > 0) msg += ' Quedan ${r.remaining} por enriquecer.';
+    if (r.remaining > 0) msg += ' ${l.syncRemaining(r.remaining)}.';
     return msg;
   }
 
@@ -91,16 +96,16 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   List<String> get _sports {
     final set = <String>{};
     for (final a in _all) {
-      set.add(Fmt.sport(a['sport_type'] as String?));
+      set.add(Fmt.sportKey(a['sport_type'] as String?));
     }
     final list = set.toList()..sort();
-    return ['Todos', ...list];
+    return ['all', ...list];
   }
 
   List<Map<String, dynamic>> get _filtered {
     var list = _all;
-    if (_filter != 'Todos') {
-      list = list.where((a) => Fmt.sport(a['sport_type'] as String?) == _filter).toList();
+    if (_filter != 'all') {
+      list = list.where((a) => Fmt.sportKey(a['sport_type'] as String?) == _filter).toList();
     }
     final q = _query.trim().toLowerCase();
     if (q.isNotEmpty) {
@@ -114,18 +119,16 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   /// fecha (con mes en palabra), distancia y lugar. Coincide si TODAS las
   /// palabras buscadas aparecen en él.
   bool _matches(Map<String, dynamic> a, List<String> tokens) {
+    final l = AppLocalizations.of(context);
     final raw = a['raw'] as Map<String, dynamic>?;
     final d = DateTime.tryParse((a['start_date'] as String?) ?? '')?.toLocal();
-    const months = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-    ];
+    final monthName = d != null ? DateFormat.MMMM().format(d) : null;
     final parts = <String?>[
       a['name'] as String?,
-      Fmt.sport(a['sport_type'] as String?),
+      sportName(l, a['sport_type'] as String?),
       a['sport_type'] as String?,
       a['description'] as String?,
-      if (d != null) '${d.day}/${d.month}/${d.year} ${months[d.month - 1]} ${d.year}',
+      if (d != null) '${d.day}/${d.month}/${d.year} $monthName ${d.year}',
       if (a['distance_m'] != null) Fmt.distance(a['distance_m']),
       raw?['location_city'] as String?,
       raw?['location_state'] as String?,
@@ -137,6 +140,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -144,7 +148,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
         title: _buildSearchField(),
         actions: [
           IconButton(
-            tooltip: 'Sincronizar nuevas',
+            tooltip: l.syncNow,
             icon: _syncing
                 ? const SizedBox(
                     height: 20,
@@ -161,13 +165,13 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
               if (value == 'full') _sync(full: true);
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'full',
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.cloud_download_outlined),
-                  title: Text('Re-sincronizar todo'),
-                  subtitle: Text('Recarga y completa el detalle del historial'),
+                  leading: const Icon(Icons.cloud_download_outlined),
+                  title: Text(l.resyncAll),
+                  subtitle: Text(l.resyncAllSubtitle),
                 ),
               ),
             ],
@@ -177,7 +181,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
       body: (_loading || (_syncing && _all.isEmpty))
           ? Center(
               child: ClimbingLoader(
-                message: _syncing ? 'Sincronizando con Strava…' : null,
+                message: _syncing ? l.syncingWithStrava : null,
               ),
             )
           : _all.isEmpty
@@ -207,6 +211,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   Widget _buildSearchField() {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 520),
       child: SizedBox(
@@ -219,7 +224,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
           onChanged: (value) => setState(() => _query = value),
           decoration: InputDecoration(
             isDense: true,
-            hintText: 'Buscar: nombre, deporte, lugar, mes…',
+            hintText: l.searchHintFull,
             hintStyle: TextStyle(color: muted, fontSize: 14),
             prefixIcon: Icon(Icons.search, color: muted, size: 20),
             suffixIcon: _query.isEmpty
@@ -240,6 +245,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
 
   Widget _buildNoResults() {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -248,7 +254,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
           children: [
             Icon(Icons.search_off, size: 48, color: muted),
             const SizedBox(height: 12),
-            Text('Sin resultados para "$_query".',
+            Text(l.noResults(_query),
                 textAlign: TextAlign.center, style: TextStyle(color: muted)),
           ],
         ),
@@ -257,6 +263,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   Widget _buildSummary() {
+    final l = AppLocalizations.of(context);
     final list = _filtered;
     final totalKm = list.fold<double>(
       0,
@@ -267,8 +274,8 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryItem('${list.length}', 'actividades'),
-          _summaryItem('${totalKm.toStringAsFixed(0)} km', 'distancia total'),
+          _summaryItem('${list.length}', l.summaryActivitiesLabel),
+          _summaryItem('${totalKm.toStringAsFixed(0)} km', l.summaryTotalDistance),
         ],
       ),
     );
@@ -289,6 +296,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   Widget _buildFilters() {
+    final l = AppLocalizations.of(context);
     return SizedBox(
       height: 48,
       child: ListView(
@@ -299,7 +307,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ChoiceChip(
-              label: Text(sport),
+              label: Text(sport == 'all' ? l.sportAll : sportName(l, sport)),
               selected: selected,
               onSelected: (_) => setState(() => _filter = sport),
             ),
@@ -322,6 +330,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   Widget _buildTile(Map<String, dynamic> a) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     final sport = a['sport_type'] as String?;
     final isRun = Fmt.isRun(sport);
     final iso = a['start_date'] as String?;
@@ -373,7 +382,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    (a['name'] as String?) ?? 'Actividad',
+                    (a['name'] as String?) ?? l.activityFallback,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
@@ -392,6 +401,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   Widget _buildEmpty() {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -401,15 +411,15 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
             Icon(Icons.cloud_sync_outlined,
                 size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
-            const Text(
-              'Aún no hay actividades.\nSincroniza para descargarlas de Strava.',
+            Text(
+              l.emptyActivities,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _syncing ? null : _sync,
               icon: const Icon(Icons.sync),
-              label: const Text('Sincronizar ahora'),
+              label: Text(l.syncNow),
             ),
           ],
         ),

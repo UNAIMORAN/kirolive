@@ -52,6 +52,15 @@ dependencies:
   # Se descargan/cachean en tiempo de ejecución; no hay que empaquetar .ttf.
   google_fonts: ^6.2.1
 
+  # Internacionalización (euskera / castellano / inglés).
+  flutter_localizations:
+    sdk: flutter
+  # Formato de fechas/números por idioma (DateFormat). La versión la fija
+  # flutter_localizations, por eso 'any'.
+  intl: any
+  # Recuerda el idioma elegido entre sesiones.
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -73,6 +82,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Genera las clases de localización (AppLocalizations) a partir de los .arb
+  # de lib/l10n al hacer pub get / build (config en l10n.yaml).
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

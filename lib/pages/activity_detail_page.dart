@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../strava/format.dart';
 import '../strava/polyline.dart';
 import '../theme.dart';
@@ -17,6 +19,7 @@ class ActivityDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final a = activity;
     final sport = a['sport_type'] as String?;
     final isRun = Fmt.isRun(sport);
@@ -34,40 +37,40 @@ class ActivityDetailPage extends StatelessWidget {
 
     // Métricas básicas (siempre) + extra (solo si hay dato, para no llenar de "—").
     final metrics = <Widget>[
-      _metric(Icons.straighten, 'Distancia', Fmt.distance(a['distance_m'])),
-      _metric(Icons.timer, 'Tiempo en movimiento', Fmt.duration(a['moving_time_s'])),
-      _metric(Icons.schedule, 'Tiempo total', Fmt.duration(a['elapsed_time_s'])),
+      _metric(Icons.straighten, l.metricDistance, Fmt.distance(a['distance_m'])),
+      _metric(Icons.timer, l.metricMovingTime, Fmt.duration(a['moving_time_s'])),
+      _metric(Icons.schedule, l.metricTotalTime, Fmt.duration(a['elapsed_time_s'])),
       if (isRun)
-        _metric(Icons.speed, 'Ritmo medio', Fmt.pace(a['average_speed_ms']))
+        _metric(Icons.speed, l.metricAvgPace, Fmt.pace(a['average_speed_ms']))
       else
-        _metric(Icons.speed, 'Velocidad media', Fmt.speed(a['average_speed_ms'])),
+        _metric(Icons.speed, l.metricAvgSpeed, Fmt.speed(a['average_speed_ms'])),
       if (maxSpeed != null && maxSpeed > 0)
         (isRun
-            ? _metric(Icons.flash_on, 'Ritmo máx', Fmt.pace(maxSpeed))
-            : _metric(Icons.flash_on, 'Velocidad máx', Fmt.speed(maxSpeed))),
-      _metric(Icons.trending_up, 'Desnivel positivo', Fmt.elevation(a['total_elevation_gain_m'])),
+            ? _metric(Icons.flash_on, l.metricMaxPace, Fmt.pace(maxSpeed))
+            : _metric(Icons.flash_on, l.metricMaxSpeed, Fmt.speed(maxSpeed))),
+      _metric(Icons.trending_up, l.metricElevGain, Fmt.elevation(a['total_elevation_gain_m'])),
       if (elevHigh != null)
-        _metric(Icons.vertical_align_top, 'Altitud máx', Fmt.altitude(elevHigh)),
+        _metric(Icons.vertical_align_top, l.metricMaxAlt, Fmt.altitude(elevHigh)),
       if (elevLow != null)
-        _metric(Icons.vertical_align_bottom, 'Altitud mín', Fmt.altitude(elevLow)),
-      _metric(Icons.favorite, 'FC media', Fmt.heartrate(a['average_heartrate'])),
-      _metric(Icons.favorite_border, 'FC máxima', Fmt.heartrate(a['max_heartrate'])),
-      _metric(Icons.bolt, 'Potencia media', Fmt.watts(a['average_watts'])),
+        _metric(Icons.vertical_align_bottom, l.metricMinAlt, Fmt.altitude(elevLow)),
+      _metric(Icons.favorite, l.metricAvgHr, Fmt.heartrate(a['average_heartrate'])),
+      _metric(Icons.favorite_border, l.metricMaxHr, Fmt.heartrate(a['max_heartrate'])),
+      _metric(Icons.bolt, l.metricAvgPower, Fmt.watts(a['average_watts'])),
       if (normPower != null && normPower > 0)
-        _metric(Icons.show_chart, 'Potencia normalizada', Fmt.watts(normPower)),
+        _metric(Icons.show_chart, l.metricNormPower, Fmt.watts(normPower)),
       if (maxWatts != null && maxWatts > 0)
-        _metric(Icons.offline_bolt, 'Potencia máx', Fmt.watts(maxWatts)),
+        _metric(Icons.offline_bolt, l.metricMaxPower, Fmt.watts(maxWatts)),
       if (kj != null && kj > 0)
-        _metric(Icons.battery_charging_full, 'Trabajo', Fmt.energy(kj)),
-      _metric(Icons.local_fire_department, 'Calorías',
+        _metric(Icons.battery_charging_full, l.metricWork, Fmt.energy(kj)),
+      _metric(Icons.local_fire_department, l.metricCalories,
           a['calories'] != null ? '${(a['calories'] as num).round()} kcal' : '—'),
-      _metric(Icons.autorenew, 'Cadencia',
+      _metric(Icons.autorenew, l.metricCadence,
           a['average_cadence'] != null ? '${(a['average_cadence'] as num).round()} rpm' : '—'),
-      _metric(Icons.whatshot, 'Esfuerzo',
+      _metric(Icons.whatshot, l.metricEffort,
           a['suffer_score'] != null ? '${(a['suffer_score'] as num).round()}' : '—'),
-      if (temp != null) _metric(Icons.thermostat, 'Temperatura', Fmt.temp(temp)),
-      if (device != null) _metric(Icons.watch, 'Dispositivo', device),
-      if (gear != null) _metric(Icons.pedal_bike, 'Material', gear),
+      if (temp != null) _metric(Icons.thermostat, l.metricTemperature, Fmt.temp(temp)),
+      if (device != null) _metric(Icons.watch, l.metricDevice, device),
+      if (gear != null) _metric(Icons.pedal_bike, l.metricGear, gear),
     ];
 
     // Datos que vienen dentro de `raw` (solo en actividades con detalle/extras).
@@ -102,7 +105,7 @@ class ActivityDetailPage extends StatelessWidget {
     final route = activityPolyline(a, full: true);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle')),
+      appBar: AppBar(title: Text(l.detailTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -125,12 +128,12 @@ class ActivityDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      (a['name'] as String?) ?? 'Actividad',
+                      (a['name'] as String?) ?? l.activityFallback,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${Fmt.sport(sport)} · ${Fmt.dateTime(a['start_date'] as String?)}',
+                      '${sportName(l, sport)} · ${Fmt.dateTime(a['start_date'] as String?)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -148,7 +151,7 @@ class ActivityDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.terrain, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                Text('Perfil de altimetría',
+                Text(l.sectionElevationProfile,
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -188,7 +191,7 @@ class ActivityDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.cloud_outlined, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                Text('Meteo', style: Theme.of(context).textTheme.titleMedium),
+                Text(l.sectionWeather, style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 12),
@@ -200,7 +203,7 @@ class ActivityDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.splitscreen, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                Text('Parciales por km',
+                Text(l.sectionSplits,
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
@@ -213,7 +216,7 @@ class ActivityDetailPage extends StatelessWidget {
               children: [
                 const Icon(Icons.donut_large, color: AppColors.accent, size: 20),
                 const SizedBox(width: 8),
-                Text('Tiempo en zonas',
+                Text(l.sectionZones,
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),

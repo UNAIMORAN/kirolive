@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../strava/compare.dart';
 import '../strava/format.dart';
 import '../theme.dart';
@@ -15,18 +17,19 @@ class ComparePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Comparador'),
-          bottom: const TabBar(
+          title: Text(l.comparatorTitle),
+          bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: 'Cara a cara'),
-              Tab(text: 'Mismo recorrido'),
-              Tab(text: 'Periodos'),
+              Tab(text: l.tabHeadToHead),
+              Tab(text: l.tabSameRoute),
+              Tab(text: l.tabPeriods),
             ],
           ),
         ),
@@ -79,7 +82,7 @@ class _HeadToHeadState extends State<_HeadToHead> {
         ),
         const SizedBox(height: 20),
         if (_a == null || _b == null)
-          _hint('Elige dos actividades para compararlas en todas sus métricas.')
+          _hint(AppLocalizations.of(context).pickTwoHint)
         else
           ...compareMetrics.map((m) => _CompareBars(metric: m, a: _a!, b: _b!)),
       ],
@@ -89,6 +92,7 @@ class _HeadToHeadState extends State<_HeadToHead> {
   Widget _slot(Map<String, dynamic>? a, Color color, String tag, VoidCallback onTap) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -112,7 +116,7 @@ class _HeadToHeadState extends State<_HeadToHead> {
             ]),
             const Spacer(),
             Text(
-              a == null ? 'Elegir actividad' : (a['name'] as String? ?? 'Actividad'),
+              a == null ? l.pickActivity : (a['name'] as String? ?? l.activityFallback),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall,
@@ -150,6 +154,7 @@ class _CompareBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     final va = metric.value(a);
     final vb = metric.value(b);
     final maxV = [va ?? 0, vb ?? 0].reduce((x, y) => x > y ? x : y);
@@ -161,7 +166,7 @@ class _CompareBars extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text(metric.label,
+              Expanded(child: Text(compareMetricLabel(l, metric.labelKey),
                   style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500))),
               _delta(va, vb, muted),
             ],
@@ -238,6 +243,7 @@ class _Routes extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     final groups = detectRoutes(activities);
 
     if (groups.isEmpty) {
@@ -248,8 +254,7 @@ class _Routes extends StatelessWidget {
             Icon(Icons.route_outlined, size: 48, color: muted),
             const SizedBox(height: 12),
             Text(
-              'Aún no detectamos rutas repetidas.\nNecesitamos al menos 2 salidas con '
-              'el mismo inicio, fin y distancia.',
+              l.routesEmpty,
               textAlign: TextAlign.center,
               style: TextStyle(color: muted),
             ),
@@ -288,11 +293,15 @@ class _Routes extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(g.label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        Text(
+                            g.commonName ??
+                                '${sportName(l, g.sportType)} · ${g.distanceKm.toStringAsFixed(1)} km',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium),
                         const SizedBox(height: 2),
                         Text(
-                          '${g.activities.length} salidas · ${g.sport} · mejor ${Fmt.duration(best['moving_time_s'])}',
+                          '${l.routeOutings(g.activities.length)} · ${sportName(l, g.sportType)} · ${l.routeBest(Fmt.duration(best['moving_time_s']))}',
                           style: theme.textTheme.bodySmall?.copyWith(color: muted),
                         ),
                       ],
@@ -317,6 +326,7 @@ class _RouteDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
 
     // Ranking por tiempo (más rápido primero).
     final ranked = [...group.activities]
@@ -334,23 +344,26 @@ class _RouteDetailPage extends StatelessWidget {
     final improvedPct = firstT > 0 ? (firstT - bestT) / firstT * 100 : 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Recorrido')),
+      appBar: AppBar(title: Text(l.routeTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(group.label, style: theme.textTheme.titleLarge),
+          Text(
+              group.commonName ??
+                  '${sportName(l, group.sportType)} · ${group.distanceKm.toStringAsFixed(1)} km',
+              style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
-          Text('${group.sport} · ${group.distanceKm.toStringAsFixed(1)} km · ${group.activities.length} salidas',
+          Text('${sportName(l, group.sportType)} · ${group.distanceKm.toStringAsFixed(1)} km · ${l.routeOutings(group.activities.length)}',
               style: TextStyle(color: muted)),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _stat(theme, 'Mejor', Fmt.duration(bestT), _colorA)),
-            Expanded(child: _stat(theme, 'Media', Fmt.duration(avgT), muted)),
-            Expanded(child: _stat(theme, 'Mejora', '${improvedPct.toStringAsFixed(0)}%',
+            Expanded(child: _stat(theme, l.statBest, Fmt.duration(bestT), _colorA)),
+            Expanded(child: _stat(theme, l.statAvg, Fmt.duration(avgT), muted)),
+            Expanded(child: _stat(theme, l.statImprovement, '${improvedPct.toStringAsFixed(0)}%',
                 improvedPct >= 0 ? AppColors.positive : AppColors.caution)),
           ]),
           const Divider(height: 32),
-          Text('Tus intentos (por tiempo)', style: theme.textTheme.titleMedium),
+          Text(l.yourAttempts, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           ...ranked.asMap().entries.map((e) {
             final i = e.key;
@@ -371,7 +384,7 @@ class _RouteDetailPage extends StatelessWidget {
               subtitle: Text(Fmt.date(a['start_date'] as String?),
                   style: TextStyle(color: muted, fontSize: 12)),
               trailing: i == 0
-                  ? const Text('récord', style: TextStyle(color: _colorA, fontWeight: FontWeight.w600))
+                  ? Text(l.record, style: const TextStyle(color: _colorA, fontWeight: FontWeight.w600))
                   : Text('+${Fmt.duration(deltaToBest)}', style: TextStyle(color: muted)),
             );
           }),
@@ -404,34 +417,36 @@ class _PeriodsState extends State<_Periods> {
   String _preset = 'mes';
 
   // Devuelve (etiquetaA, inicioA, finA, etiquetaB, inicioB, finB).
-  ({String la, DateTime sa, DateTime ea, String lb, DateTime sb, DateTime eb}) _ranges() {
+  ({String la, DateTime sa, DateTime ea, String lb, DateTime sb, DateTime eb}) _ranges(
+      AppLocalizations l) {
     final now = DateTime.now();
     switch (_preset) {
       case 'semana':
         final cur = DateTime(now.year, now.month, now.day)
             .subtract(Duration(days: now.weekday - 1));
-        return (la: 'Esta semana', sa: cur, ea: cur.add(const Duration(days: 7)),
-            lb: 'Semana ant.', sb: cur.subtract(const Duration(days: 7)), eb: cur);
+        return (la: l.periodThisWeek, sa: cur, ea: cur.add(const Duration(days: 7)),
+            lb: l.periodPrevWeek, sb: cur.subtract(const Duration(days: 7)), eb: cur);
       case 'año':
         final cur = DateTime(now.year, 1, 1);
         return (la: '${now.year}', sa: cur, ea: DateTime(now.year + 1, 1, 1),
             lb: '${now.year - 1}', sb: DateTime(now.year - 1, 1, 1), eb: cur);
       case '30d':
         final cur = now.subtract(const Duration(days: 30));
-        return (la: 'Últimos 30d', sa: cur, ea: now,
-            lb: '30d previos', sb: now.subtract(const Duration(days: 60)), eb: cur);
+        return (la: l.periodLast30, sa: cur, ea: now,
+            lb: l.periodPrev30, sb: now.subtract(const Duration(days: 60)), eb: cur);
       case 'mes':
       default:
         final cur = DateTime(now.year, now.month, 1);
-        return (la: 'Este mes', sa: cur, ea: DateTime(now.year, now.month + 1, 1),
-            lb: 'Mes ant.', sb: DateTime(now.year, now.month - 1, 1), eb: cur);
+        return (la: l.periodThisMonth, sa: cur, ea: DateTime(now.year, now.month + 1, 1),
+            lb: l.periodPrevMonth, sb: DateTime(now.year, now.month - 1, 1), eb: cur);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final r = _ranges();
+    final l = AppLocalizations.of(context);
+    final r = _ranges(l);
     final a = aggregate(widget.activities, r.sa, r.ea);
     final b = aggregate(widget.activities, r.sb, r.eb);
 
@@ -444,11 +459,11 @@ class _PeriodsState extends State<_Periods> {
             visualDensity: VisualDensity.compact,
             textStyle: WidgetStatePropertyAll(theme.textTheme.bodySmall),
           ),
-          segments: const [
-            ButtonSegment(value: 'semana', label: Text('Semana')),
-            ButtonSegment(value: 'mes', label: Text('Mes')),
-            ButtonSegment(value: '30d', label: Text('30 días')),
-            ButtonSegment(value: 'año', label: Text('Año')),
+          segments: [
+            ButtonSegment(value: 'semana', label: Text(l.periodWeek)),
+            ButtonSegment(value: 'mes', label: Text(l.periodMonth)),
+            ButtonSegment(value: '30d', label: Text(l.seg30d)),
+            ButtonSegment(value: 'año', label: Text(l.segYear)),
           ],
           selected: {_preset},
           onSelectionChanged: (s) => setState(() => _preset = s.first),
@@ -459,12 +474,12 @@ class _PeriodsState extends State<_Periods> {
           Expanded(child: _legend(r.lb, _colorB)),
         ]),
         const SizedBox(height: 8),
-        _row(theme, 'Actividades', a.count.toString(), b.count.toString(), a.count.toDouble(), b.count.toDouble()),
-        _row(theme, 'Distancia', '${a.km.toStringAsFixed(0)} km', '${b.km.toStringAsFixed(0)} km', a.km, b.km),
-        _row(theme, 'Tiempo', Fmt.duration(a.hours * 3600), Fmt.duration(b.hours * 3600), a.hours, b.hours),
-        _row(theme, 'Desnivel', Fmt.elevation(a.elevation), Fmt.elevation(b.elevation), a.elevation, b.elevation),
-        _row(theme, 'Calorías', '${a.calories.round()}', '${b.calories.round()}', a.calories, b.calories),
-        _row(theme, 'FC media', Fmt.heartrate(a.avgHr), Fmt.heartrate(b.avgHr), a.avgHr ?? 0, b.avgHr ?? 0),
+        _row(theme, l.activities, a.count.toString(), b.count.toString(), a.count.toDouble(), b.count.toDouble()),
+        _row(theme, l.statDistance, '${a.km.toStringAsFixed(0)} km', '${b.km.toStringAsFixed(0)} km', a.km, b.km),
+        _row(theme, l.statTime, Fmt.duration(a.hours * 3600), Fmt.duration(b.hours * 3600), a.hours, b.hours),
+        _row(theme, l.metricElevation, Fmt.elevation(a.elevation), Fmt.elevation(b.elevation), a.elevation, b.elevation),
+        _row(theme, l.metricCalories, '${a.calories.round()}', '${b.calories.round()}', a.calories, b.calories),
+        _row(theme, l.metricAvgHr, Fmt.heartrate(a.avgHr), Fmt.heartrate(b.avgHr), a.avgHr ?? 0, b.avgHr ?? 0),
       ],
     );
   }
@@ -528,11 +543,12 @@ Future<Map<String, dynamic>?> _pickActivity(
       return StatefulBuilder(
         builder: (context, setSheet) {
           final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+          final l = AppLocalizations.of(context);
           final q = query.trim().toLowerCase();
           final list = q.isEmpty
               ? activities
               : activities.where((a) {
-                  final hay = '${a['name'] ?? ''} ${Fmt.sport(a['sport_type'] as String?)} '
+                  final hay = '${a['name'] ?? ''} ${sportName(l, a['sport_type'] as String?)} '
                           '${Fmt.date(a['start_date'] as String?)}'
                       .toLowerCase();
                   return hay.contains(q);
@@ -548,9 +564,9 @@ Future<Map<String, dynamic>?> _pickActivity(
                     child: TextField(
                       autofocus: true,
                       onChanged: (v) => setSheet(() => query = v),
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar actividad…',
-                        prefixIcon: Icon(Icons.search),
+                      decoration: InputDecoration(
+                        hintText: l.searchWorkoutsHint,
+                        prefixIcon: const Icon(Icons.search),
                         isDense: true,
                       ),
                     ),
@@ -563,7 +579,7 @@ Future<Map<String, dynamic>?> _pickActivity(
                         final a = list[i];
                         return ListTile(
                           leading: Icon(Fmt.icon(a['sport_type'] as String?)),
-                          title: Text(a['name'] as String? ?? 'Actividad',
+                          title: Text(a['name'] as String? ?? l.activityFallback,
                               maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text(
                             '${Fmt.distance(a['distance_m'])} · ${Fmt.date(a['start_date'] as String?)}',

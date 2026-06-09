@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../pages/compare_page.dart';
 import '../strava/format.dart';
 import '../strava/stats.dart';
@@ -22,26 +25,21 @@ class _DashboardState extends State<Dashboard> {
   String _period = 'week'; // 'week' | 'month'
   Metric _metric = Metric.distance;
   int _weeks = 12; // rango del gráfico
-  String _sport = 'Todos';
-
-  static const _months = [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
-  ];
+  String _sport = 'all'; // clave de deporte ('all' = todos)
 
   List<String> get _sports {
     final set = <String>{};
     for (final a in widget.activities) {
-      set.add(Fmt.sport(a['sport_type'] as String?));
+      set.add(Fmt.sportKey(a['sport_type'] as String?));
     }
     final list = set.toList()..sort();
-    return ['Todos', ...list];
+    return ['all', ...list];
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_sport == 'Todos') return widget.activities;
+    if (_sport == 'all') return widget.activities;
     return widget.activities
-        .where((a) => Fmt.sport(a['sport_type'] as String?) == _sport)
+        .where((a) => Fmt.sportKey(a['sport_type'] as String?) == _sport)
         .toList();
   }
 
@@ -49,6 +47,7 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     final stats = Stats(_filtered);
 
     return Column(
@@ -74,7 +73,7 @@ class _DashboardState extends State<Dashboard> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Comparativa', style: theme.textTheme.titleMedium),
+                    Text(l.comparison, style: theme.textTheme.titleMedium),
                     const SizedBox(width: 4),
                     const Icon(Icons.compare_arrows, size: 18, color: AppColors.accent),
                   ],
@@ -84,9 +83,9 @@ class _DashboardState extends State<Dashboard> {
             SegmentedButton<String>(
               showSelectedIcon: false,
               style: _segStyle(theme),
-              segments: const [
-                ButtonSegment(value: 'week', label: Text('Semana')),
-                ButtonSegment(value: 'month', label: Text('Mes')),
+              segments: [
+                ButtonSegment(value: 'week', label: Text(l.periodWeek)),
+                ButtonSegment(value: 'month', label: Text(l.periodMonth)),
               ],
               selected: {_period},
               onSelectionChanged: (s) => setState(() => _period = s.first),
@@ -107,7 +106,7 @@ class _DashboardState extends State<Dashboard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Evolución', style: theme.textTheme.titleMedium),
+            Text(l.evolution, style: theme.textTheme.titleMedium),
             SegmentedButton<int>(
               showSelectedIcon: false,
               style: _segStyle(theme),
@@ -142,6 +141,7 @@ class _DashboardState extends State<Dashboard> {
       );
 
   Widget _sportFilter() {
+    final l = AppLocalizations.of(context);
     return SizedBox(
       height: 38,
       child: ListView(
@@ -150,7 +150,7 @@ class _DashboardState extends State<Dashboard> {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: Text(sport),
+              label: Text(sport == 'all' ? l.sportAll : sportName(l, sport)),
               selected: sport == _sport,
               onSelected: (_) => setState(() => _sport = sport),
             ),
@@ -165,12 +165,13 @@ class _DashboardState extends State<Dashboard> {
     final values = series.map((p) => p.value).toList();
     final labels = series.map((p) {
       final d = p.weekStart;
-      return '${d.day} ${_months[d.month - 1]}';
+      return '${d.day} ${DateFormat.MMM().format(d)}';
     }).toList();
     return TrendChart(values: values, labels: labels, unit: _metric.unit);
   }
 
   Widget _metricChips() {
+    final l = AppLocalizations.of(context);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -178,7 +179,7 @@ class _DashboardState extends State<Dashboard> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ChoiceChip(
-              label: Text(m.label),
+              label: Text(metricLabel(l, m)),
               selected: m == _metric,
               onSelected: (_) => setState(() => _metric = m),
             ),
@@ -189,6 +190,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _comparisonCard(ThemeData theme, Color muted, Stats stats, Metric m) {
+    final l = AppLocalizations.of(context);
     final c = stats.comparison(m, _period);
     final active = m == _metric;
     return LiftCard(
@@ -202,7 +204,7 @@ class _DashboardState extends State<Dashboard> {
         children: [
           Row(
             children: [
-              Expanded(child: Text(m.label, style: TextStyle(color: muted, fontSize: 13))),
+              Expanded(child: Text(metricLabel(l, m), style: TextStyle(color: muted, fontSize: 13))),
               if (active)
                 const Icon(Icons.show_chart, size: 14, color: AppColors.accent),
             ],
@@ -219,8 +221,9 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _deltaChip(ThemeData theme, Metric m, Comparison c) {
     final muted = theme.colorScheme.onSurfaceVariant;
+    final l = AppLocalizations.of(context);
     if (c.pctChange == null) {
-      return Text('sin datos previos', style: TextStyle(fontSize: 12, color: muted));
+      return Text(l.noPreviousData, style: TextStyle(fontSize: 12, color: muted));
     }
     final pct = c.pctChange!;
     final up = pct >= 0;
@@ -235,7 +238,7 @@ class _DashboardState extends State<Dashboard> {
             style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(width: 6),
         Flexible(
-          child: Text('vs ${_period == 'week' ? 'sem. ant.' : 'mes ant.'}',
+          child: Text(_period == 'week' ? l.vsPrevWeek : l.vsPrevMonth,
               style: TextStyle(fontSize: 12, color: muted),
               overflow: TextOverflow.ellipsis),
         ),
